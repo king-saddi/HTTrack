@@ -8,35 +8,44 @@ public class HTTrack {
     public static void main(String[] args) throws Exception {
 
         URL index = new URL("http://paulgraham.com/index.html");
-        
-        
         String content = htmlToString(index);
         ArrayList<String> allLinks = new ArrayList<String>();
         
-        allLinks = getLinks(content.toString());
+        String directoryToSave = "C:/Test/";
+        save(directoryToSave, index);
         
-        for(String link: allLinks){
-        	
-        	ArrayList<String> recursedLinks = new ArrayList<String>();
-        	
-        	
-        	URL next = new URL("http://" +index.getHost() + "/" +link);
-        	System.out.println(next.getFile());
-        	
-        	recursedLinks = getLinks(htmlToString(next));
-        	for(String rLink: recursedLinks){
-        		if (!allLinks.contains(rLink)){
-        			//allLinks.add(rLink);
-        		}
-        	}
-        	System.out.println(recursedLinks);
-        	
-        }
-        
+        ArrayList<String> repeat = new ArrayList<String>();
+        allLinks = getLinks(content.toString(), repeat);
         System.out.println(allLinks);
+        int maxCrawlDepth = 2;
+        crawl(index,allLinks, directoryToSave, 0, maxCrawlDepth);
         
-
     }
+    
+    public static void crawl(URL index, ArrayList<String> allLinks, String directory, int currentDepth, int maxDepth) throws Exception{
+    	if(currentDepth<maxDepth){
+	    	for(String link: allLinks){
+	        	
+	        	
+	        	ArrayList<String> recursedLinks = new ArrayList<String>();
+	        	
+	        	
+	        	URL current = new URL("http://" +index.getHost() + "/" +link);
+	        	
+	        	
+	        	recursedLinks = getLinks(htmlToString(current), allLinks);
+	        	
+	        	if(currentDepth<maxDepth){
+	        		save(directory, current);
+	        		System.out.println("The current depth is:" + currentDepth);
+	        		System.out.println("The current string is:" +current.toString());
+	        		System.out.println(recursedLinks);
+	        		crawl(index, allLinks, directory, currentDepth+1, maxDepth);
+	        	}
+	        }
+    	}
+    }
+    
     
     // Given a url, this method reads the contents and 
     // returns a string with the html contents for parsing purposes
@@ -64,7 +73,7 @@ public class HTTrack {
     }
     
     // Create the appropriate file and directory, and save the url
-    public static void save(URL link){
+    public static void save(String directory, URL link){
         BufferedReader in;
 		try {
 		in = new BufferedReader(new InputStreamReader(link.openStream()));
@@ -74,7 +83,9 @@ public class HTTrack {
         
         FileOutputStream fop = null;
 		File file;
-		file = new File("C:/oracle/oracle.html");
+		file = new File(directory + link.getHost() + link.getFile());
+		file.getParentFile().mkdir();
+		file.createNewFile();
 		fop = new FileOutputStream(file);
 		
 
@@ -101,7 +112,7 @@ public class HTTrack {
     
     // This method returns a list of the relative links the page contains
     // by searching for href references that contain html and don't contain http(meaning absolute)
-    public static ArrayList<String> getLinks(String content){
+    public static ArrayList<String> getLinks(String content, ArrayList<String> repeat){
     	
 		int start = 0;
 		int stop = 0;
@@ -111,9 +122,11 @@ public class HTTrack {
     			
     			stop = content.indexOf("\"", start +6 );
     			String url = content.substring(start +6, stop);
-    			if ((url.contains("html") == true) && (url.contains("http") != true)) { 
-    				result.add(url);
-	    		}
+    			if(!repeat.contains(url)){
+	    			if ((url.contains("html") == true) && (url.contains("http") != true)) { 
+	    				result.add(url);
+		    		}
+    			}
     		}
     	
     	return result;
